@@ -224,7 +224,24 @@ services:
       - nodeweb-container
       - nodewebsocket-container
     networks:
-      - edge-network   # só a borda: não enxerga o banco
+      edge-network:
+        aliases:
+          - nginx_host   # o exporter usa este alias para acessar o stub_status
+  #NGINX PROMETHEUS EXPORTER: lê o stub_status do nginx e expõe /metrics para o Prometheus
+  # Precisa de edge-network para alcançar o nginx e de data-network para ser alcançado pelo Prometheus
+  nginx-exporter-container:
+    image: nginx/nginx-prometheus-exporter:1.4.1
+    command: ["--nginx.scrape-uri", "http://nginx_host/stub_status"]
+    restart: unless-stopped
+    depends_on:
+      - nginx-container
+    networks:
+      edge-network:
+        aliases:
+          - nginx_exporter_host   # o Prometheus usa este alias
+      data-network:
+        aliases:
+          - nginx_exporter_host
 
   #POSTGRES
   postgres-container:
